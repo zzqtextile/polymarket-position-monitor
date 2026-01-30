@@ -52,7 +52,7 @@ def serve_positions():
     return send_from_directory('/root/poly_data', 'positions.html')
 
 # 从环境变量读取私钥
-PRIVATE_KEY = os.environ.get('POLYMARKET_PRIVATE_KEY', '0x619a878d25d3b00219c8539a1e12228760c12047b04718349901f820674edeeb')
+PRIVATE_KEY = os.environ.get('POLYMARKET_PRIVATE_KEY')
 
 # 代理钱包地址
 PROXY_ADDRESS = os.environ.get('PROXY_ADDRESS', '0xc891EA46e4591612c92AA913089fbBE8bb29d3AC')
