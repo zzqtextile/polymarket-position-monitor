@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>持仓监控 - Polymarket</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            background: #0d0e11;
+            color: #eaecef;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background: #1e2329;
+            border-bottom: 1px solid #2b3139;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .navbar .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fcd535;
+        }
+        .navbar .logo span {
+            color: #eaecef;
+            font-weight: 400;
+        }
+        .wallet-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .wallet-input {
+            background: #2b3139;
+            border: 1px solid #474d57;
+            color: #eaecef;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 400px;
+            font-family: inherit;
+        }
+        .wallet-input:focus {
+            outline: none;
+            border-color: #fcd535;
+        }
+        .refresh-btn {
+            background: #fcd535;
+            color: #0d0e11;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover {
+            background: #e5c12e;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 市场区块 */
+        .market-block {
+            background: #1e2329;
+            border: 1px solid #2b3139;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .market-header {
+            background: #2b3139;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #363c45;
+        }
+        .market-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .market-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .market-icon.btc {
+            background: #f7931a;
+            color: #fff;
+        }
+        .market-icon.eth {
+            background: #627eea;
+            color: #fff;
+        }
+        .market-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .market-time {
+            font-size: 12px;
+            color: #848e9c;
+        }
+
+        /* 汇总卡片 */
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #2b3139;
+            padding: 16px 24px;
+        }
+        .summary-item {
+            text-align: center;
+            padding: 8px;
+        }
+        .summary-label {
+            font-size: 11px;
+            color: #848e9c;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .summary-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .summary-value.green {
+            color: #0ecb81;
+        }
+        .summary-value.red {
+            color: #f6465d;
+        }
+
+        /* 持仓列表 */
+        .position-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 120px 120px 120px 140px;
+            gap: 16px;
+            padding: 16px 24px;
+            border-bottom: 1px solid #2b3139;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .position-row:hover {
+            background: #2b3139;
+        }
+        .position-row:last-child {
+            border-bottom: none;
+        }
+
+        /* 表头 */
+        .table-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 120px 120px 120px 140px;
+            gap: 16px;
+            padding: 12px 24px;
+            background: #1e2329;
+            font-size: 11px;
+            color: #848e9c;
+            text-transform: uppercase;
+            border-bottom: 1px solid #2b3139;
+        }
+
+        /* 数据列 */
+        .col-side {
+            display: flex;
+            align-items: center;
+        }
+        .side-badge {
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .side-badge.up {
+            background: rgba(14, 203, 129, 0.15);
+            color: #0ecb81;
+        }
+        .side-badge.down {
+            background: rgba(246, 70, 93, 0.15);
+            color: #f6465d;
+        }
+
+        .col-market {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .col-size {
+            text-align: right;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .col-price {
+            text-align: right;
+            font-size: 14px;
+            color: #848e9c;
+        }
+
+        .col-value {
+            text-align: right;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .col-pnl {
+            text-align: right;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .col-pnl.green {
+            color: #0ecb81;
+        }
+        .col-pnl.red {
+            color: #f6465d;
+        }
+
+        /* 标签 */
+        .badge-group {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        .badge {
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge.redeemable {
+            background: #0ecb81;
+            color: #0d0e11;
+        }
+        .badge.mergeable {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            padding: 60px 24px;
+            text-align: center;
+            color: #848e9c;
+        }
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* 加载状态 */
+        .loading-state {
+            padding: 80px 24px;
+            text-align: center;
+            color: #848e9c;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #2b3139;
+            border-top-color: #fcd535;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 错误状态 */
+        .error-state {
+            background: rgba(246, 70, 93, 0.1);
+            border: 1px solid #f6465d;
+            color: #f6465d;
+            padding: 16px 24px;
+            border-radius: 4px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        /* 底部信息 */
+        .footer-info {
+            text-align: center;
+            padding: 24px;
+            color: #848e9c;
+            font-size: 12px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .wallet-input {
+                width: 280px;
+            }
+            .summary-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                height: auto;
+                padding: 16px;
+                gap: 16px;
+            }
+            .wallet-input {
+                width: 100%;
+            }
+            .position-row, .table-header {
+                grid-template-columns: 60px 1fr 80px;
+                gap: 8px;
+                font-size: 12px;
+            }
+            .col-price, .col-value {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div class="navbar">
+        <div class="logo">Polymarket <span>Positions</span></div>
+        <div class="wallet-section">
+            <input
+                type="text"
+                id="walletInput"
+                class="wallet-input"
+                placeholder="钱包地址 (0x...)"
+                value="0xc891EA46e4591612c92AA913089fbBE8bb29d3AC"
+            >
+            <button class="refresh-btn" onclick="fetchPositions()">刷新数据</button>
+        </div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="error" style="display: none;"></div>
+
+    <!-- 加载状态 -->
+    <div id="loading" class="loading-state">
+        <div class="spinner"></div>
+        <div>加载持仓数据...</div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content" id="content" style="display: none;"></div>
+
+    <!-- 底部信息 -->
+    <div class="footer-info" id="lastUpdate"></div>
+
+    <script>
+        async function fetchPositions() {
+            const wallet = document.getElementById('walletInput').value.trim();
+            if (!wallet) {
+                showError('请输入钱包地址');
+                return;
+            }
+
+            hideError();
+            showLoading();
+
+            try {
+                // 使用原始API获取持仓
+                const response = await fetch(`/api/get_positions_raw?wallet=${wallet}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || '获取持仓失败');
+                    return;
+                }
+
+                if (!data.positions || data.positions.length === 0) {
+                    showEmpty();
+                    return;
+                }
+
+                displayPositions(data.positions, data.markets || {});
+
+            } catch (e) {
+                showError('获取持仓失败: ' + e.message);
+            }
+        }
+
+        function displayPositions(positions, markets) {
+            hideLoading();
+            const content = document.getElementById('content');
+            content.style.display = 'block';
+            content.innerHTML = '';
+
+            // 按市场类型分组
+            const byMarket = { 'BTC': [], 'ETH': [] };
+            positions.forEach(pos => {
+                const type = pos.market_type || 'BTC';
+                byMarket[type].push(pos);
+            });
+
+            // 为每个市场创建显示区块
+            for (const [marketType, marketPositions] of Object.entries(byMarket)) {
+                if (marketPositions.length === 0) {
+                    content.innerHTML += createEmptyMarketBlock(marketType);
+                    continue;
+                }
+
+                // 计算汇总
+                let totalValue = 0;
+                let totalPnl = 0;
+                let totalSize = 0;
+
+                // 按结果分组
+                const grouped = {};
+                marketPositions.forEach(pos => {
+                    const outcome = pos.outcome || 'Unknown';
+                    if (!grouped[outcome]) {
+                        grouped[outcome] = {
+                            outcome: outcome,
+                            size: 0,
+                            avgPrice: 0,
+                            totalCost: 0,
+                            currentValue: 0,
+                            curPrice: pos.curPrice || 0,
+                            cashPnl: 0,
+                            percentPnl: 0,
+                            redeemable: false,
+                            mergeable: false,
+                            count: 0
+                        };
+                    }
+
+                    const g = grouped[outcome];
+                    const cost = pos.size * pos.avgPrice;
+                    g.size += pos.size;
+                    g.totalCost += cost;
+                    g.currentValue += pos.currentValue;
+                    g.cashPnl += pos.cashPnl;
+                    g.redeemable = g.redeemable || pos.redeemable;
+                    g.mergeable = g.mergeable || pos.mergeable;
+                    g.count += 1;
+
+                    g.avgPrice = g.totalCost / g.size;
+                    g.percentPnl = ((g.currentValue - g.totalCost) / g.totalCost) * 100;
+
+                    totalValue += g.currentValue;
+                    totalPnl += g.cashPnl;
+                    totalSize += g.size;
+                });
+
+                const pnlClass = totalPnl >= 0 ? 'green' : 'red';
+
+                // 构建市场区块 HTML
+                let marketHtml = `
+                    <div class="market-block">
+                        <div class="market-header">
+                            <div class="market-title">
+                                <div class="market-icon ${marketType.toLowerCase()}">
+                                    ${marketType === 'BTC' ? '₿' : 'Ξ'}
+                                </div>
+                                <div>
+                                    <div class="market-name">${marketType} 永久合约</div>
+                                    <div class="market-time">15分钟 • 当前期权</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="summary-row">
+                            <div class="summary-item">
+                                <div class="summary-label">持仓数量</div>
+                                <div class="summary-value">${parseFloat(totalSize).toFixed(2)}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">当前价值</div>
+                                <div class="summary-value">$${parseFloat(totalValue).toFixed(2)}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">未实现盈亏</div>
+                                <div class="summary-value ${pnlClass}">$${parseFloat(totalPnl).toFixed(2)}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">盈亏比例</div>
+                                <div class="summary-value ${pnlClass}">${parseFloat(totalValue) > 0 ? ((parseFloat(totalPnl) / parseFloat(totalValue)) * 100).toFixed(2) : '0.00'}%</div>
+                            </div>
+                        </div>
+
+                        <div class="table-header">
+                            <div>方向</div>
+                            <div>标的</div>
+                            <div style="text-align: right">持仓</div>
+                            <div style="text-align: right">均价</div>
+                            <div style="text-align: right">现价</div>
+                            <div style="text-align: right">未实现盈亏</div>
+                        </div>
+                `;
+
+                // 添加持仓行
+                Object.values(grouped).forEach(g => {
+                    const pnlClass = g.cashPnl >= 0 ? 'green' : 'red';
+                    const sideClass = g.outcome.toLowerCase() === 'up' ? 'up' : 'down';
+
+                    const badges = [];
+                    if (g.redeemable) badges.push('<span class="badge redeemable">可赎回</span>');
+                    if (g.mergeable) badges.push('<span class="badge mergeable">可合并</span>');
+
+                    marketHtml += `
+                        <div class="position-row">
+                            <div class="col-side">
+                                <span class="side-badge ${sideClass}">${g.outcome}</span>
+                            </div>
+                            <div class="col-market">
+                                ${marketType}/USDT
+                                ${badges.length > 0 ? `<div class="badge-group">${badges.join('')}</div>` : ''}
+                            </div>
+                            <div class="col-size">${parseFloat(g.size).toFixed(2)}</div>
+                            <div class="col-price">$${parseFloat(g.avgPrice).toFixed(4)}</div>
+                            <div class="col-price">$${parseFloat(g.curPrice || 0).toFixed(4)}</div>
+                            <div class="col-pnl ${pnlClass}">
+                                ${g.cashPnl >= 0 ? '+' : ''}$${parseFloat(g.cashPnl).toFixed(2)}
+                                <br>
+                                <small style="opacity: 0.7;">${parseFloat(g.percentPnl).toFixed(2)}%</small>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                marketHtml += `
+                    </div>
+                `;
+
+                content.innerHTML += marketHtml;
+            }
+
+            // 更新时间
+            document.getElementById('lastUpdate').textContent =
+                '最后更新: ' + new Date().toLocaleString('zh-CN') +
+                ' • 每30秒自动刷新';
+        }
+
+        function createEmptyMarketBlock(marketType) {
+            return `
+                <div class="market-block">
+                    <div class="market-header">
+                        <div class="market-title">
+                            <div class="market-icon ${marketType.toLowerCase()}">
+                                ${marketType === 'BTC' ? '₿' : 'Ξ'}
+                            </div>
+                            <div>
+                                <div class="market-name">${marketType} 永久合约</div>
+                                <div class="market-time">15分钟 • 当前期权</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div>当前市场无持仓</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '⚠️ ' + msg;
+            errorDiv.style.display = 'block';
+            hideLoading();
+            document.getElementById('content').style.display = 'none';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showEmpty() {
+            hideLoading();
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="market-block">
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div>当前市场无持仓</div>
+                    </div>
+                </div>
+            `;
+            content.style.display = 'block';
+        }
+
+        // 自动加载
+        fetchPositions();
+
+        // 每30秒自动刷新
+        setInterval(fetchPositions, 30000);
+    </script>
+</body>
+</html>
